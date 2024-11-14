@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <h1>Les sondages</h1>
+    <dl>
+      {% for (titre, _) in sondages %}
+      <dt>{{ titre }}</dt>
+      <dd><a href="/voter/{{ titre }}">Voter</a> <a href="/resultats/{{ titre }}">Résultats</a></dd>
+      {% endfor %}
+    </dl>
+  </body>
+</html>
+

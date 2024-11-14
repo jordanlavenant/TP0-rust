@@ -1,0 +1,19 @@
+<h1>le_titre</h1>
+
+<main>
+
+  <p>A voté!</p>
+  
+  {% for (reponse, note) in reponses %}
+  <pre>
+    {% match note %}
+      {% when Some with (note) %}
+         {{ reponse }} : {{ note }}
+    {% when None %}
+         pas de {{ reponse }}.
+    {% endmatch %}
+  </pre>
+  {% endfor %}
+
+
+</main>

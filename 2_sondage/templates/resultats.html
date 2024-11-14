@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <h1>Les résultats</h1>
+
+    <table>
+      <thead>
+	<tr>
+	  <th></th>
+	  <th>Médiane</th>
+	  <th>Nul</th>
+	  <th>Très mauvais</th>
+	  <th>Mauvais</th>
+	  <th>Passable</th>
+	  <th>Bien</th>
+	  <th>Très bien</th>
+	  <th>Excellent</th>
+	</tr>
+      </thead>
+      <tbody>
+	{% for (i, histo) in votes.iter().enumerate() %}
+	<tr>
+	  <th scope="row">{{ options[i] }}</th>
+	  <th scope="row">
+	    {{ histo.affiche_mediane() }}
+	  </th>
+	  {% for f in histo.frequences %}
+	  <td>{{ f }}</td>
+	  {% endfor %}
+	</tr>
+	{% endfor %}
+      </tbody>
+    </table>
+
+    {% match Self::meilleure_option(self) %}
+    {% when Some with (choix) %}
+    <h2>Option préférée</h2>
+    {{ choix }}
+    {% when None %}
+    <p>Pas encore de votes</p>
+    {% endmatch %}
+
+  </body>

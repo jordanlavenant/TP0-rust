@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <h1>Les résultats</h1>
+
+    <table>
+      <thead>
+	<tr>
+	  <th></th>
+          <th>médiane</th>
+	  <th>0..10</th>
+	  <th>10..20</th>
+	  <th>20..30</th>
+	  <th>30..40</th>
+	  <th>40..50</th>
+	  <th>50..60</th>
+	  <th>60..70</th>
+	  <th>70..80</th>
+          <th>80..90</th>
+          <th>90..100</th>
+	</tr>
+      </thead>
+      <tbody>
+	{% for (option, votes_option) in votes %}
+	<tr>
+	  <th scope="row">{{ option }}</th>
+	  <th scope="row">
+            {% match self.mediane(option) %}
+            {% when None %}
+            N/A
+            {% when Some with (m) %}
+            {{ m }}
+            {% endmatch %}
+	  </th>
+	  {% for f in 0..9 %}
+	  <td>{{ self.decile(option, f) }}</td>
+	  {% endfor %}
+	</tr>
+	{% endfor %}
+      </tbody>
+    </table>
+
+    {% match Self::meilleure_option(self) %}
+    {% when Some with (choix) %}
+    <h2>Option préférée</h2>
+    {{ choix }}
+    {% when None %}
+    <p>Pas encore de votes</p>
+    {% endmatch %}
+
+  </body>

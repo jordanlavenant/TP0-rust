@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  </head>
+  <body>
+    <h1>{{ titre }}</h1>
+
+    <main>
+      Voici les différentes options.
+
+      <form action="/voter/{{ titre }}" method="post">
+	<ul>
+	  {% for option in options %}
+	  <li>
+	    <label>{{ option }}</label>
+	    {% if deroulant %}
+	    <select name="{{ option }}" id="note_{{ option }}">
+	      <option value="">Non noté</option>
+	      <option value="0">Nul</option>
+	      <option value="1">Très mauvais</option>
+	      <option value="2">Mauvais</option>
+	      <option value="3">Passable</option>
+	      <option value="4">Bien</option>
+	      <option value="5">Très bien</option>
+	      <option value="6">Excellent</option>
+	    </select>
+	    {% else %}
+	    <input type="range" name="{{ option }}" min="0.0" max="100.0"/>
+	    {% endif %}
+	  </li>
+	  {% endfor %}
+	</ul>
+	<button>Noter!</button>
+      </form>
+
+      <footer>
+	Page faite à la rache.
+      </footer>
+    </main>
+  </body>
+</html>
