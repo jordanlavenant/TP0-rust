@@ -1,4 +1,7 @@
-#[cfg(test)]
+use std::{fs::File, path::Path};
+
+use rand::Rng;
+use serde::Deserialize;
 mod tests;
 
 #[derive(Clone, Copy, Debug)]
@@ -33,6 +36,7 @@ enum Ciel {
     Brouillard,
 }
 
+#[derive(Clone)]
 struct Meteo {
     temperature: f32,
     ciel: Ciel,
@@ -93,82 +97,115 @@ fn to_farenheit(t_celsius: i32) -> i32 {
     ((t_celsius as f32) * 5.0 / 9.0) as i32
 }
 
-// fn meteo_aleatoire() -> Meteo {
-//     use rand::Rng;
-//     let mut rng = rand::thread_rng();
+fn meteo_aleatoire() -> Meteo {
+    let mut rng = rand::thread_rng();
+    let temperature: f32 = rng.gen_range(-15.0..40.0);
+    let ciel = match rng.gen_range(0..5) {
+        0 => Ciel::Brouillard,
+        1 => Ciel::Clair,
+        2 => {
+            let hauteur = rng.gen_range(0.0..20.0);
+            Ciel::Neige(hauteur)
+        }
+        3 => Ciel::Nuageux,
+        4 => {
+            let hauteur = rng.gen_range(0.0..15.0);
+            Ciel::Pluie(hauteur)
+        }
+        _ => unreachable!(),
+    };
+    let alerte = if rng.gen_range(0.0..100.0) < 20.0 {
+        if rng.gen_range(0.0..100.0) < 50.0 {
+            Some(Alerte::Inondation)
+        } else {
+            Some(Alerte::Vent)
+        }
+    } else {
+        None
+    };
+    Meteo {
+        temperature,
+        ciel,
+        alerte,
+    }
+}
 
-//     let temperature = rng.gen_range(-10.0..30.0);
-//     let ciel = match rng.gen_range(0..5) {
-//         0 => Ciel::Clair,
-//         1 => Ciel::Nuageux,
-//         2 => Ciel::Brouillard,
-//         3 => Ciel::Pluie(rng.gen_range(0.0..50.0)),
-//         4 => Ciel::Neige(rng.gen_range(0.0..50.0)),
-//         _ => unreachable!(),
-//     };
+fn lit_csv_meteo(path: &Path) -> Vec<Meteo> {
+    let csv_file = File::open(path).unwrap();
+    let mut reader = csv::Reader::from_reader(csv_file);
+    let mut res = vec![];
+    for r in reader.records() {
+        let r = r.expect("Erreur de format csv");
+        let temperature: f32 = r[0].parse().expect("erreur de format numÃ©rique champ 0");
+        let ciel = if &r[1] == "Clair" {
+            Ciel::Clair
+        } else if &r[1] == "Nuageux" {
+            Ciel::Nuageux
+        } else if &r[1] == "Pluie" {
+            let hauteur = r[2].parse().expect("erreur de format numÃ©rique champ 2");
+            Ciel::Pluie(hauteur)
+        } else if &r[1] == "Neige" {
+            let hauteur = r[2].parse().expect("erreur de format numÃ©rique champ 2");
+            Ciel::Neige(hauteur)
+        } else {
+            Ciel::Brouillard
+        };
+        let alerte: Option<Alerte> = match r[3].parse().ok() {
+            None => None,
+            Some(0) => Some(Alerte::Vent),
+            Some(1) => Some(Alerte::Inondation),
+            Some(_) => panic!("Erreur de format dâalerte"),
+        };
 
-//     let alerte = match rng.gen_range(0..3) {
-//         0 => None,
-//         1 => Some(Alerte::Vent),
-//         2 => Some(Alerte::Inondation),
-//         _ => unreachable!(),
-//     };
+        let meteo: Meteo = Meteo {
+            temperature,
+            ciel,
+            alerte,
+        };
+        res.push(meteo);
+    }
+    res
+}
 
-//     Meteo {
-//         temperature,
-//         ciel,
-//         alerte,
-//     }
-// }
+fn mediane(v: Vec<Meteo>) -> f32 {
+    let mut temp: Vec<f32> = vec![];
+    for m in v {
+        temp.push(m.temperature);
+    }
+    temp.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let len = temp.len();
+    if len % 2 == 0 {
+        (temp[len / 2] + temp[len / 2 - 1]) / 2.0
+    } else {
+        temp[len / 2]
+    }
+}
+
+fn moyenne(v: Vec<Meteo>) -> f32 {
+    let mut sum = 0.0;
+    for m in &v {
+        sum += m.temperature;
+    }
+    sum / v.len() as f32
+}
 
 fn main() {
-    let orleans = [
-        Meteo {
-            temperature: 12.0,
-            ciel: Ciel::Brouillard,
-            alerte: Some(Alerte::Vent),
-        },
-        Meteo {
-            temperature: 25.0,
-            ciel: Ciel::Clair,
-            alerte: None,
-        },
-        Meteo {
-            temperature: 12.0,
-            ciel: Ciel::Brouillard,
-            alerte: Some(Alerte::Vent),
-        },
-    ];
-    let perpignan = [
-        Meteo {
-            temperature: 25.0,
-            ciel: Ciel::Clair,
-            alerte: None,
-        },
-        Meteo {
-            temperature: 25.0,
-            ciel: Ciel::Clair,
-            alerte: None,
-        },
-        Meteo {
-            temperature: 25.0,
-            ciel: Ciel::Pluie(10.0),
-            alerte: None,
-        },
-    ];
+    let malibu: Vec<Meteo> = lit_csv_meteo(Path::new("meteo_malibu.csv"));
+    let orleans: Vec<Meteo> = lit_csv_meteo(Path::new("meteo_orleans.csv"));
 
-    println!("Orléans\n");
-
-    for m in orleans {
+    for m in malibu.clone() {
         print_meteo(m);
         println!("\n");
     }
 
-    println!("\n");
-    println!("Perpignan\n");
-
-    for m in perpignan {
+    for m in orleans.clone() {
         print_meteo(m);
         println!("\n");
     }
+
+    println!("Mediane Malibu: {}", mediane(malibu.clone()));
+    println!("Mediane Orléans: {}", mediane(orleans.clone()));
+
+    println!("Moyenne Malibu: {}", moyenne(malibu));
+    println!("Moyenne Orléans: {}", moyenne(orleans));
 }
