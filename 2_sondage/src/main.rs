@@ -16,12 +16,18 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 const OPTIONS: [&str; 3] = ["vert", "rouge", "rose"];
-const OPTIONS2: [&str; 5] = ["vert bouteille", "rouge carmin", "vieux rose", "bleu pâle", "jaune tournesol"];
+const OPTIONS2: [&str; 5] = [
+    "vert bouteille",
+    "rouge carmin",
+    "vieux rose",
+    "bleu pâle",
+    "jaune tournesol",
+];
 
 #[cfg(test)]
 mod tests;
-mod types;
 mod traitements;
+mod types;
 
 type Histogramme = types::Histogramme;
 type SondageDeroulant = types::SondageDeroulant;
@@ -80,29 +86,30 @@ impl SondageRange {
     pub(crate) fn decile(&self, option: &str, k: &u32) -> u32 {
         let k = *k;
         let votes = self.votes[option].clone();
-        traitements::nombre_dans_intervalle(&votes, 10.0*k as f64, 10.0*(k+1) as f64)
+        traitements::nombre_dans_intervalle(&votes, 10.0 * k as f64, 10.0 * (k + 1) as f64)
     }
 }
 
 impl SondageRange {
     fn add_option(&mut self, o: &str) {
-	self.votes.insert(o.to_string(), vec![]);
+        self.votes.insert(o.to_string(), vec![]);
     }
 
     fn add_vote(&mut self, notes: Vec<(String, String)>) {
-	for (o, note) in notes.iter() {
-	    self.votes.get_mut(o).expect("bla").push(note.parse().unwrap())
-	}
+        for (o, note) in notes.iter() {
+            self.votes
+                .get_mut(o)
+                .expect("bla")
+                .push(note.parse().unwrap())
+        }
     }
 }
 
-
 #[derive(Clone, Template)]
-#[template(path="main.html")]
+#[template(path = "main.html")]
 struct AppState {
-    sondages: HashMap<String, Sondage>
+    sondages: HashMap<String, Sondage>,
 }
-
 
 #[apply(smol_macros::main!)]
 async fn main(ex: &Arc<smol_macros::Executor<'_>>) -> io::Result<()> {
@@ -115,16 +122,20 @@ async fn main(ex: &Arc<smol_macros::Executor<'_>>) -> io::Result<()> {
     };
 
     let sondage2 = {
-	let mut this = SondageRange { votes: HashMap::new() };
-	for o in OPTIONS2 {
-	    this.add_option(o)
-	};
-	this
+        let mut this = SondageRange {
+            votes: HashMap::new(),
+        };
+        for o in OPTIONS2 {
+            this.add_option(o)
+        }
+        this
     };
 
     let app_state = AppState {
-	sondages: HashMap::from([("Couleurs".to_string(), Sondage::Deroulant(sondage1)),
-				 ("Nuances".to_string(), Sondage::Range(sondage2))])
+        sondages: HashMap::from([
+            ("Couleurs".to_string(), Sondage::Deroulant(sondage1)),
+            ("Nuances".to_string(), Sondage::Range(sondage2)),
+        ]),
     };
     let app_state = Arc::new(Mutex::new(app_state));
 
@@ -159,27 +170,29 @@ struct EnTeteSondage<'a> {
     deroulant: bool,
 }
 
-async fn handler_voter(Path(titre): Path<String>, State(a): State<Arc<Mutex<AppState>>>) -> Html<String> {
+async fn handler_voter(
+    Path(titre): Path<String>,
+    State(a): State<Arc<Mutex<AppState>>>,
+) -> Html<String> {
     let a = a.lock().unwrap();
     let sondage = &a.sondages[&titre];
     let en_tete = match sondage {
         Sondage::Deroulant(d) => {
-	    let options = &d.options[..];
-	    EnTeteSondage {
-		titre: &titre,
-		options: options.to_vec(),
-		deroulant: true,
-	    }
-
-	},
+            let options = &d.options[..];
+            EnTeteSondage {
+                titre: &titre,
+                options: options.to_vec(),
+                deroulant: true,
+            }
+        }
         Sondage::Range(r) => {
-	    let options: Vec<String> = r.votes.keys().cloned().collect();
-	    EnTeteSondage {
-		titre: &titre,
-		options,
-		deroulant: false,
-	    }
-	},
+            let options: Vec<String> = r.votes.keys().cloned().collect();
+            EnTeteSondage {
+                titre: &titre,
+                options,
+                deroulant: false,
+            }
+        }
     };
     Html(en_tete.render().unwrap())
 }
@@ -201,35 +214,37 @@ async fn handler_voter_post(
     println!("got {reponses:?}");
 
     let mut app_state = a.lock().unwrap();
-    let s = app_state.sondages.get_mut(&nom_sondage).expect("no such sondage");
+    let s = app_state
+        .sondages
+        .get_mut(&nom_sondage)
+        .expect("no such sondage");
     match s {
         Sondage::Deroulant(d) => {
-	    let reponses: Vec<Option<usize>> = reponses
-		.iter()
-		.map(|(_ , note)| {
-		    if !note.is_empty() {
-			Some(note.parse().unwrap())
-		    } else {
-			None
-		    }
-		})
-		.collect();
-	    d.add_vote(&reponses)
-	},
+            let reponses: Vec<Option<usize>> = reponses
+                .iter()
+                .map(|(_, note)| {
+                    if !note.is_empty() {
+                        Some(note.parse().unwrap())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            d.add_vote(&reponses)
+        }
         Sondage::Range(r) => r.add_vote(reponses),
     }
-   Html("coucou".to_string()) //r.render().unwrap())
+    Html("coucou".to_string()) //r.render().unwrap())
 }
 
 async fn handler_resultats(
     Path(nom_sondage): Path<String>,
-    State(a): State<Arc<Mutex<AppState>>>) -> Html<String>
-{
+    State(a): State<Arc<Mutex<AppState>>>,
+) -> Html<String> {
     let a = a.lock().unwrap();
     let s = a.sondages.get(&nom_sondage).expect("l177: no such sondage");
     match s {
         Sondage::Deroulant(d) => Html(d.render().unwrap()),
         Sondage::Range(r) => Html(r.render().unwrap()),
     }
-
 }
