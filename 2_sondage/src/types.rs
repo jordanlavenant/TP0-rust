@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use askama::Template;
+use std::collections::HashMap;
 
 #[derive(Default, Debug, Clone, Copy)]
 pub(crate) struct Histogramme {
@@ -13,15 +13,14 @@ pub(crate) struct SondageDeroulant {
     pub(crate) votes: Vec<Histogramme>,
 }
 
-
 #[derive(Clone, Template)]
 #[template(path = "resultats2.html")]
 pub(crate) struct SondageRange {
-    pub(crate) votes: HashMap<String, Vec<f64>>,
+    pub(crate) votes: HashMap<String, Vec<u32>>,
 }
 
 #[derive(Clone)]
 pub(crate) enum Sondage {
     Deroulant(SondageDeroulant),
-    Range(SondageRange)
+    Range(SondageRange),
 }

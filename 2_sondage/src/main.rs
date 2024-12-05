@@ -79,14 +79,14 @@ impl SondageRange {
         traitements::meilleure_option_range(self.votes.clone())
     }
 
-    pub(crate) fn mediane(&self, option: &str) -> Option<f64> {
+    pub(crate) fn mediane(&self, option: &str) -> Option<u32> {
         traitements::mediane_vec(&self.votes[option])
     }
 
     pub(crate) fn decile(&self, option: &str, k: &u32) -> u32 {
         let k = *k;
         let votes = self.votes[option].clone();
-        traitements::nombre_dans_intervalle(&votes, 10.0 * k as f64, 10.0 * (k + 1) as f64)
+        traitements::nombre_dans_intervalle(&votes, 10 * k as u32, 10 * (k + 1) as u32)
     }
 }
 
